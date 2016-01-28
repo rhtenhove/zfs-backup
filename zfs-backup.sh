@@ -49,7 +49,7 @@
 # zfs send/recv to bring it up to date, a la
 #   zfs send -I zfs-auto-snap_daily-(latest on remote) -R \
 #	$POOL/$FS@zfs-auto-snap_daily-(latest local) | \
-#       ssh $REMUSER@REMHOST zfs recv -dvF $REMPOOL
+#       ssh $REMUSER@REMHOST -p $REMPORT zfs recv -dvF $REMPOOL
 # It's probably best to do a dry-run first (zfs recv -ndvF).
 
 
@@ -77,6 +77,7 @@ PROP="edu.tamu:backuptarget"
 REMUSER="zfsbak"
 # special case: when $REMHOST=localhost, ssh is bypassed
 REMHOST="backupserver.my.domain"
+REMPORT="22"
 REMPOOL="backuppool"
 REMZFS="$ZFS"
 
@@ -141,7 +142,7 @@ if [ -z "$RECENT" ]; then RECENT=0; fi
 if [ "$REMHOST" = "localhost" ]; then
     REMZFS_CMD="$ZFS"
 else
-    REMZFS_CMD="ssh $REMUSER@$REMHOST $REMZFS"
+    REMZFS_CMD="ssh $REMUSER@$REMHOST -p $REMPORT $REMZFS"
 fi
 
 # Usage: do_backup pool/fs/to/backup receive_option
@@ -200,8 +201,8 @@ do_backup() {
 	# ssh needs public key auth configured beforehand
 	# Not using $REMZFS_CMD because we need 'ssh -n' here, but must not use
 	# 'ssh -n' for the actual zfs recv.
-	newest_remote="$(ssh -n $REMUSER@$REMHOST $REMZFS list -t snapshot -H -S creation -o name -d 1 $TARGET | grep $TAG | head -1)"
-	err_msg="Error fetching remote snapshot listing via ssh to $REMUSER@$REMHOST."
+	newest_remote="$(ssh -n $REMUSER@$REMHOST -p $REMPORT $REMZFS list -t snapshot -H -S creation -o name -d 1 $TARGET | grep $TAG | head -1)"
+	err_msg="Error fetching remote snapshot listing via ssh to $REMUSER@$REMHOST -p $REMPORT."
     fi
     if [ -z $newest_remote ]; then
 	echo "$err_msg" >&2
